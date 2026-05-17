@@ -6,5 +6,6 @@ DerivedData/
 build/
 Divoom Stats.app/
 .DS_Store
+.vscode/
 Resources/AppIcon.iconset/
 Resources/AppIcon.icns

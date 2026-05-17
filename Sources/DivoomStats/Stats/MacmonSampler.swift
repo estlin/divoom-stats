@@ -21,10 +21,15 @@ final class MacmonSampler {
     }
 
     private static func locate() -> String? {
-        for path in ["/opt/homebrew/bin/macmon", "/usr/local/bin/macmon"] {
-            if FileManager.default.isExecutableFile(atPath: path) { return path }
+        // Prefer the bundled binary so a distributed .app doesn't depend on
+        // Homebrew being installed on the user's machine. Fall back to system
+        // Homebrew paths for development runs from the command line.
+        var candidates: [String] = []
+        if let bundled = Bundle.main.path(forResource: "macmon", ofType: nil) {
+            candidates.append(bundled)
         }
-        return nil
+        candidates += ["/opt/homebrew/bin/macmon", "/usr/local/bin/macmon"]
+        return candidates.first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
     var isAvailable: Bool { FileManager.default.isExecutableFile(atPath: macmonPath) }

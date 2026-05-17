@@ -15,9 +15,18 @@ import Foundation
 /// For a 128x128 still: frame_count=1, rows=8, cols=8 (16 px per block).
 enum MinitooProtocol {
     static let imageCommand: UInt8 = 0x8b
+    static let jsonCommand: UInt8 = 0x01
     static let startMarker: UInt8 = 0x00
     static let chunkMarker: UInt8 = 0x01
     static let chunkSize = 256
+
+    /// Wrap a JSON-style command (e.g. `Channel/SetClockSelectId`) in a single
+    /// framed packet. Used for short non-image commands like restoring the
+    /// device's clock face. JSON body must be small enough to fit in one frame
+    /// (the wrap helper produces declared_len as LE16, max ~65kB).
+    static func encodeJSONCommand(_ body: Data) -> Data {
+        return wrap(cmd: jsonCommand, body: body)
+    }
 
     /// Build the full sequence of frames (start packet + chunks) to push one
     /// RGB888 128x128 image to the device. `pixels` must be exactly 128*128*3 bytes.

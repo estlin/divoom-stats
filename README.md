@@ -18,9 +18,19 @@ Apple Silicon only. macOS 12+. No sudo required.
 - **Transport** — `IOBluetooth` RFCOMM channel 1 to the first paired device whose name matches `(?i)divoom|minitoo`.
 - **Settings** — refresh interval (1/2/5/10/30s) and temperature unit (°C/°F), persisted in `UserDefaults`.
 
-## Setup
+## Running a prebuilt `.app`
 
-This codebase needs **arm64 Homebrew** at `/opt/homebrew` (the standard Apple Silicon location). If you only have Intel Homebrew at `/usr/local`, install the arm64 one alongside:
+The built `Divoom Stats.app` bundles `libzstd` and `macmon` inside it, so **end users don't need Homebrew installed**. Just:
+
+1. Pair your Minitoo from System Settings → Bluetooth (the app auto-discovers it; no MAC needed).
+2. Double-click `Divoom Stats.app`. Approve the Bluetooth permission prompt on first launch.
+3. A 📊 icon appears in the menu bar. Open it for status, Settings…, Pause, and Quit.
+
+## Building from source
+
+To compile the source yourself you do need Homebrew (with `libzstd` headers and the `macmon` binary), but only at build time — the produced `.app` is self-contained.
+
+Requires **arm64 Homebrew** at `/opt/homebrew`. If you only have Intel Homebrew at `/usr/local`, install the arm64 one alongside:
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -31,18 +41,9 @@ Then:
 
 ```bash
 /opt/homebrew/bin/brew install macmon zstd
-```
-
-Pair your Minitoo from System Settings → Bluetooth. The app auto-discovers it; no MAC needed.
-
-## Build & run
-
-```bash
 ./build-app.sh
 open "Divoom Stats.app"
 ```
-
-The first launch will prompt for Bluetooth permission. Approve it; a 📊 icon appears in the menu bar. Open it for status, Settings…, Pause, and Quit.
 
 ## Project layout
 
