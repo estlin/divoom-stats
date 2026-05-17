@@ -1,0 +1,82 @@
+# Divoom Stats (macOS)
+
+A menu-bar Mac app that pushes real-time CPU / GPU / RAM / disk usage and
+temperatures to a paired **Divoom Minitoo** display over Bluetooth Classic
+(SPP / RFCOMM).
+
+Apple Silicon only. macOS 12+. No sudo required.
+
+## How it works
+
+- **Stats**
+  - CPU%  — Mach `host_statistics` (delta between samples)
+  - RAM   — Mach `host_statistics64` (Activity Monitor's "used" definition)
+  - Disk  — `statfs("/")`
+  - GPU%, CPU temp, GPU temp — bundled [`macmon`](https://github.com/vladkens/macmon) subprocess (reads the private `IOReport` framework, no sudo)
+- **Renderer** — CoreGraphics draws a 128×128 RGB888 frame, 4-quadrant layout: CPU top-left, GPU top-right, RAM bottom-left, DISK bottom-right.
+- **Protocol** — Per [alvinunreal/divoom-minitoo-osx PROTOCOL.md](https://github.com/alvinunreal/divoom-minitoo-osx/blob/main/PROTOCOL.md). Frame envelope `0x01 <len LE16> <cmd> <body> <chk LE16> 0x02`, image command `0x8b` split into a start packet + 256-byte chunks. Pixels compressed with Zstandard (`window_log=17`).
+- **Transport** — `IOBluetooth` RFCOMM channel 1 to the first paired device whose name matches `(?i)divoom|minitoo`.
+- **Settings** — refresh interval (1/2/5/10/30s) and temperature unit (°C/°F), persisted in `UserDefaults`.
+
+## Setup
+
+This codebase needs **arm64 Homebrew** at `/opt/homebrew` (the standard Apple Silicon location). If you only have Intel Homebrew at `/usr/local`, install the arm64 one alongside:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# Follow the post-install instructions to add /opt/homebrew/bin to your PATH.
+```
+
+Then:
+
+```bash
+/opt/homebrew/bin/brew install macmon zstd
+```
+
+Pair your Minitoo from System Settings → Bluetooth. The app auto-discovers it; no MAC needed.
+
+## Build & run
+
+```bash
+./build-app.sh
+open "Divoom Stats.app"
+```
+
+The first launch will prompt for Bluetooth permission. Approve it; a 📊 icon appears in the menu bar. Open it for status, Settings…, Pause, and Quit.
+
+## Project layout
+
+```
+Sources/
+├── CZstd/                          system-library wrapper for libzstd
+└── DivoomStats/
+    ├── main.swift                  menu-bar app + timer loop
+    ├── Settings/
+    │   ├── Settings.swift          UserDefaults-backed prefs
+    │   └── SettingsWindow.swift    NSWindow with refresh + unit popups
+    ├── Stats/
+    │   ├── Stats.swift             shared struct
+    │   ├── CPUSampler.swift        host_statistics
+    │   ├── MemorySampler.swift     host_statistics64
+    │   ├── DiskSampler.swift       statfs
+    │   └── MacmonSampler.swift     macmon subprocess
+    ├── Render/
+    │   └── FrameRenderer.swift     CoreGraphics 128×128 → RGB888
+    ├── Protocol/
+    │   ├── Zstd.swift              libzstd wrapper (window_log=17)
+    │   └── MinitooProtocol.swift   envelope + 0x8b + 256-byte chunking
+    └── Bluetooth/
+        └── MinitooConnection.swift IOBluetooth RFCOMM auto-discover + write
+Tools/
+└── MakeIcon.swift                  generates AppIcon.iconset → AppIcon.icns
+```
+
+## Customizing
+
+- **Layout** — edit `FrameRenderer.swift`. Stats arrive in a `Stats` struct; render anything you like to the 128×128 `CGContext`.
+- **Device match** — `namePattern` in `MinitooConnection.swift` is a regex; tighten if you have multiple Divoom devices paired.
+- **Icon** — `Tools/MakeIcon.swift` draws the app icon programmatically. Edit the colors/loads there and `build-app.sh` will regenerate `Resources/AppIcon.icns` on the next build (delete the cached `.icns` to force).
+
+## Acknowledgements
+
+Wire-protocol details, packet shapes, and the RFCOMM-channel-1 hint come from [alvinunreal/divoom-minitoo-osx](https://github.com/alvinunreal/divoom-minitoo-osx). This project ports the protocol to a self-contained Swift app and adds Mac system monitoring.

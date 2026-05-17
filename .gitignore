@@ -1,0 +1,10 @@
+.build/
+.swiftpm/
+Package.resolved
+*.xcodeproj
+DerivedData/
+build/
+Divoom Stats.app/
+.DS_Store
+Resources/AppIcon.iconset/
+Resources/AppIcon.icns
