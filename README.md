@@ -20,11 +20,15 @@ Apple Silicon only. macOS 12+. No sudo required.
 
 ## Running a prebuilt `.app`
 
-The built `Divoom Stats.app` bundles `libzstd` and `macmon` inside it, so **end users don't need Homebrew installed**. Just:
+Download the latest release from **https://github.com/estlin/divoom-stats/releases** — `Divoom Stats.app.zip` bundles `libzstd` and `macmon` inside it, so **no Homebrew or other dependencies needed**.
 
-1. Pair your Minitoo from System Settings → Bluetooth (the app auto-discovers it; no MAC needed).
-2. Double-click `Divoom Stats.app`. Approve the Bluetooth permission prompt on first launch.
-3. A 📊 icon appears in the menu bar. Open it for status, Settings…, Pause, and Quit.
+1. Unzip and move `Divoom Stats.app` wherever you like (e.g. `/Applications`).
+2. First-launch dance for ad-hoc-signed apps: macOS won't open it via double-click because the bundle isn't notarized. Either:
+   - **Right-click → Open** (then click Open in the warning dialog), or
+   - Run `xattr -d com.apple.quarantine "Divoom Stats.app"` once, then double-click.
+3. Pair your Minitoo from System Settings → Bluetooth (the app auto-discovers it; no MAC needed).
+4. Approve the Bluetooth permission prompt on first run.
+5. A 📊 icon appears in the menu bar. Open it for status, Settings…, Pause, and Quit.
 
 ## Building from source
 

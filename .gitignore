@@ -5,6 +5,7 @@ Package.resolved
 DerivedData/
 build/
 Divoom Stats.app/
+*.zip
 .DS_Store
 .vscode/
 Resources/AppIcon.iconset/
