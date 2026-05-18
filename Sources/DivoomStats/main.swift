@@ -35,13 +35,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        // NOTE: previously sent Channel/SetClockSelectId here to hand the
-        // display back to the device's built-in clock face. That puts the
-        // Minitoo into "show stored clock face" mode, and the firmware then
-        // *ignores incoming image frames* (cmd 0x8b) until the device is
-        // power-cycled — making the next app launch appear broken. The
-        // lesser evil is to leave the device on the last stats frame on quit.
+        // Hand the display back to the device's default clock face so the
+        // Minitoo doesn't sit frozen on our last stats frame.
+        restoreClockFace()
         macmon.stop()
+    }
+
+    /// Send the `Channel/SetClockSelectId` JSON command (cmd 0x01) to switch
+    /// the Minitoo to its first stored clock face (ClockId 984 = "custom1").
+    /// Key order and the device/token/user IDs match the Android client capture
+    /// in alvinunreal/divoom-minitoo-osx (`tools/divoom_clock.py`) — the device
+    /// validates the bytes against that reference shape.
+    private func restoreClockFace(clockId: Int = 984) {
+        guard connection.isConnected else { return }
+        // JSONSerialization with .sortedKeys gives alphabetical key order,
+        // which matches the Python reference exactly.
+        let payload: [String: Any] = [
+            "ClockId": clockId,
+            "Command": "Channel/SetClockSelectId",
+            "DeviceId": 600111083,
+            "DevicePassword": 1777733348,
+            "Language": "en",
+            "LcdIndependence": 0,
+            "LcdIndex": 0,
+            "PageIndex": 0,
+            "ParentClockId": 0,
+            "ParentItemId": "",
+            "Token": 1777741943,
+            "UserId": 404779143,
+        ]
+        do {
+            let body = try JSONSerialization.data(
+                withJSONObject: payload,
+                options: [.sortedKeys, .withoutEscapingSlashes]
+            )
+            let packet = MinitooProtocol.encodeJSONCommand(body)
+            try connection.send([packet])
+        } catch {
+            fputs("restoreClockFace failed: \(error)\n", stderr)
+        }
     }
 
     private func rebuildMenu() {
