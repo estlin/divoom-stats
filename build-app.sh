@@ -87,8 +87,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleName</key><string>Divoom Stats</string>
     <key>CFBundleDisplayName</key><string>Divoom Stats</string>
     <key>CFBundleIdentifier</key><string>local.divoom.stats</string>
-    <key>CFBundleVersion</key><string>0.1</string>
-    <key>CFBundleShortVersionString</key><string>0.1</string>
+    <key>CFBundleVersion</key><string>0.2.2</string>
+    <key>CFBundleShortVersionString</key><string>0.2.2</string>
     <key>CFBundleExecutable</key><string>DivoomStats</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
