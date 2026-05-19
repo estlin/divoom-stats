@@ -30,6 +30,12 @@ Download the latest release from **https://github.com/estlin/divoom-stats/releas
 4. Approve the Bluetooth permission prompt on first run.
 5. A 📊 icon appears in the menu bar. Open it for status, Settings…, Pause, and Quit.
 
+## Known behavior: last frame stays on quit
+
+When you quit the menu-bar app the Minitoo keeps showing whichever stats frame arrived last — the app doesn't send a "shut down" command on quit. The obvious candidate (`Channel/SetClockSelectId`) locks the firmware into "show stored clock face" mode and from that point silently drops all future `0x8b` image frames until the device is power-cycled, which would make the next launch appear broken (see commit [`5bb8486`](https://github.com/estlin/divoom-stats/commit/5bb8486)). Leaving the last frame on screen is the lesser evil.
+
+**To get back to the device's normal menu after quitting, click the joystick on the Minitoo.** That brings up the device's built-in mode/channel UI and you can navigate away from the frozen stats frame.
+
 ## Building from source
 
 To compile the source yourself you do need Homebrew (with `libzstd` headers and the `macmon` binary), but only at build time — the produced `.app` is self-contained.
