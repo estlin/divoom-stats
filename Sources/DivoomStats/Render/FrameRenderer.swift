@@ -73,9 +73,12 @@ final class FrameRenderer {
         let clamped = max(0.0, min(100.0, percent))
         let color = loadColor(clamped)
 
-        // Top: label (e.g. "CPU"), 9pt
+        // Top: label (e.g. "CPU"), 9pt — rendered crisp (no antialiasing) so
+        // glyph strokes align to whole pixels on the 128×128 panel instead of
+        // bleeding into grey edge pixels.
         drawText(ctx, label, at: CGPoint(x: rect.minX + 4, y: rect.maxY - 12), size: 9,
-                 color: CGColor(red: 0.78, green: 0.78, blue: 0.78, alpha: 1), bold: true)
+                 color: CGColor(red: 0.95, green: 0.95, blue: 0.95, alpha: 1),
+                 bold: true, crisp: true)
 
         // Big percentage, 22pt — right-aligned within quadrant
         let pctStr = "\(Int(clamped.rounded()))%"
@@ -83,11 +86,11 @@ final class FrameRenderer {
                  at: CGPoint(x: rect.maxX - 4, y: rect.maxY - 32),
                  size: 22, color: color, bold: true, rightAlign: true)
 
-        // Subtext (temp or used/total), 8pt
+        // Subtext (temp or used/total), 10pt
         if let sub = subtext {
             drawText(ctx, sub,
                      at: CGPoint(x: rect.minX + 4, y: rect.minY + 12),
-                     size: 8, color: CGColor(red: 0.65, green: 0.65, blue: 0.65, alpha: 1))
+                     size: 10, color: CGColor(red: 0.78, green: 0.78, blue: 0.78, alpha: 1))
         }
 
         // Bottom bar — 4px tall, full width minus 4px padding
@@ -112,7 +115,8 @@ final class FrameRenderer {
         size: CGFloat,
         color: CGColor,
         bold: Bool = false,
-        rightAlign: Bool = false
+        rightAlign: Bool = false,
+        crisp: Bool = false
     ) {
         let font = CTFontCreateWithName(
             bold ? "Menlo-Bold" as CFString : "Menlo" as CFString,
@@ -131,8 +135,21 @@ final class FrameRenderer {
             let w = CTLineGetTypographicBounds(line, nil, nil, nil)
             origin.x -= CGFloat(w)
         }
+        // Snap to whole pixels so glyph metrics don't put strokes on .5
+        // subpixel positions (which the rasterizer would smear across two pixels).
+        origin.x = origin.x.rounded()
+        origin.y = origin.y.rounded()
+
+        if crisp {
+            ctx.saveGState()
+            ctx.setShouldAntialias(false)
+            ctx.setShouldSmoothFonts(false)
+        }
         ctx.textPosition = origin
         CTLineDraw(line, ctx)
+        if crisp {
+            ctx.restoreGState()
+        }
     }
 
     /// Strip alpha and pack as tightly-packed RGB888 (49152 bytes for 128x128).

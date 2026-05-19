@@ -16,6 +16,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var lastError: String? = nil
     private var lastSentAt: Date? = nil
+    private var lastSentPixels: Data? = nil
+    private var lastSentBytes: Int = 0
+    private var skipCount: Int = 0
+
+    // Force a resend every N consecutive skipped ticks so the display
+    // recovers if the user navigated away with the device joystick.
+    private let forceResendEvery = 30
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -62,7 +69,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if let last = lastSentAt {
             let secondsAgo = Int(Date().timeIntervalSince(last))
-            menu.addItem(withTitle: "Last frame: \(secondsAgo)s ago", action: nil, keyEquivalent: "")
+            let kb = Double(lastSentBytes) / 1024.0
+            menu.addItem(
+                withTitle: String(format: "Last frame: %ds ago — %.1f KB", secondsAgo, kb),
+                action: nil,
+                keyEquivalent: ""
+            )
+            if skipCount > 0 {
+                menu.addItem(
+                    withTitle: "Skipped \(skipCount) unchanged tick\(skipCount == 1 ? "" : "s")",
+                    action: nil,
+                    keyEquivalent: ""
+                )
+            }
         }
         menu.addItem(NSMenuItem.separator())
 
@@ -142,13 +161,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let pixels = renderer.render(stats)
+
+        // Frame dedup: if the rendered pixels match what's already on the
+        // device, skip the encode + send entirely. Idle/stable stats round
+        // to the same integers each tick, so this collapses the duty cycle
+        // dramatically. Force a resend every `forceResendEvery` skipped
+        // ticks so the display recovers if the user navigated away with
+        // the joystick.
+        if let last = lastSentPixels, pixels == last, skipCount < forceResendEvery {
+            skipCount += 1
+            DispatchQueue.main.async { [weak self] in self?.rebuildMenu() }
+            return
+        }
+
         do {
             let image = try MinitooProtocol.encodeImage(rgb888: pixels)
             try connection.sendImage(image)
             lastSentAt = Date()
+            lastSentPixels = pixels
+            lastSentBytes = image.start.count + image.chunks.reduce(0) { $0 + $1.count }
+            skipCount = 0
             lastError = nil
         } catch {
             lastError = "\(error)"
+            // Clear the cache on failure so the next attempt always re-sends
+            // (the device may have lost the frame mid-transfer).
+            lastSentPixels = nil
             fputs("send failed: \(error)\n", stderr)
         }
         DispatchQueue.main.async { [weak self] in self?.rebuildMenu() }
