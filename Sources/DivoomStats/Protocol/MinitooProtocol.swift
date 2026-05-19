@@ -28,9 +28,18 @@ enum MinitooProtocol {
         return wrap(cmd: jsonCommand, body: body)
     }
 
-    /// Build the full sequence of frames (start packet + chunks) to push one
-    /// RGB888 128x128 image to the device. `pixels` must be exactly 128*128*3 bytes.
-    static func encodeImage(rgb888 pixels: Data, speedMs: UInt16 = 1000) throws -> [Data] {
+    /// Result of `encodeImage`: a `start` packet that must be sent first,
+    /// then `chunks` sent one at a time with ~12ms between writes. Back-to-
+    /// back chunks overflow the device's receive buffer and the whole frame
+    /// gets silently dropped.
+    struct EncodedImage {
+        let start: Data
+        let chunks: [Data]
+    }
+
+    /// Build the start packet + chunks needed to push one RGB888 128x128
+    /// image. `pixels` must be exactly 128*128*3 bytes.
+    static func encodeImage(rgb888 pixels: Data, speedMs: UInt16 = 1000) throws -> EncodedImage {
         precondition(pixels.count == 128 * 128 * 3, "expected 128x128 RGB888 buffer")
 
         let compressed = try Zstd.compress(pixels)
@@ -48,19 +57,19 @@ enum MinitooProtocol {
         payload.append(UInt8(zlen & 0xFF))
         payload.append(compressed)
 
-        var packets: [Data] = []
-        packets.append(buildStartPacket(payloadSize: UInt32(payload.count)))
+        let start = buildStartPacket(payloadSize: UInt32(payload.count))
 
+        var chunks: [Data] = []
         var seq: UInt16 = 0
         var idx = 0
         while idx < payload.count {
             let end = min(idx + chunkSize, payload.count)
             let slice = payload.subdata(in: idx ..< end)
-            packets.append(buildChunkPacket(payloadSize: UInt32(payload.count), seq: seq, data: slice))
+            chunks.append(buildChunkPacket(payloadSize: UInt32(payload.count), seq: seq, data: slice))
             seq &+= 1
             idx = end
         }
-        return packets
+        return EncodedImage(start: start, chunks: chunks)
     }
 
     // MARK: - packet builders

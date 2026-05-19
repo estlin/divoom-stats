@@ -143,8 +143,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let pixels = renderer.render(stats)
         do {
-            let packets = try MinitooProtocol.encodeImage(rgb888: pixels)
-            try connection.send(packets)
+            let image = try MinitooProtocol.encodeImage(rgb888: pixels)
+            try connection.sendImage(image)
             lastSentAt = Date()
             lastError = nil
         } catch {
