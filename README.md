@@ -13,8 +13,8 @@ Apple Silicon only. macOS 12+. No sudo required.
   - RAM   — Mach `host_statistics64` (Activity Monitor's "used" definition)
   - Disk  — `statfs("/")`
   - GPU%, CPU temp, GPU temp — bundled [`macmon`](https://github.com/vladkens/macmon) subprocess (reads the private `IOReport` framework, no sudo)
-- **Renderer** — CoreGraphics draws a 128×128 RGB888 frame, 4-quadrant layout: CPU top-left, GPU top-right, RAM bottom-left, DISK bottom-right.
-- **Protocol** — Per [alvinunreal/divoom-minitoo-osx PROTOCOL.md](https://github.com/alvinunreal/divoom-minitoo-osx/blob/main/PROTOCOL.md). Frame envelope `0x01 <len LE16> <cmd> <body> <chk LE16> 0x02`, image command `0x8b` split into a start packet + 256-byte chunks. Pixels compressed with Zstandard (`window_log=17`).
+- **Renderer** — CoreGraphics draws a 128×128 RGB888 frame, 4-quadrant layout: CPU top-left, GPU top-right, RAM bottom-left, DISK bottom-right. Identical frames are skipped so the Bluetooth radio stays idle when stats don't change.
+- **Protocol** — Per [alvinunreal/divoom-minitoo-osx PROTOCOL.md](https://github.com/alvinunreal/divoom-minitoo-osx/blob/main/PROTOCOL.md). Frame envelope `0x01 <len LE16> <cmd> <body> <chk LE16> 0x02`, image command `0x8b` split into a start packet + 256-byte chunks. Pixels compressed with Zstandard (`window_log=17`, level 19).
 - **Transport** — `IOBluetooth` RFCOMM channel 1 to the first paired device whose name matches `(?i)divoom|minitoo`.
 - **Settings** — refresh interval (1/2/5/10/30s) and temperature unit (°C/°F), persisted in `UserDefaults`.
 
@@ -87,6 +87,13 @@ Tools/
 - **Layout** — edit `FrameRenderer.swift`. Stats arrive in a `Stats` struct; render anything you like to the 128×128 `CGContext`.
 - **Device match** — `namePattern` in `MinitooConnection.swift` is a regex; tighten if you have multiple Divoom devices paired.
 - **Icon** — `Tools/MakeIcon.swift` draws the app icon programmatically. Edit the colors/loads there and `build-app.sh` will regenerate `Resources/AppIcon.icns` on the next build (delete the cached `.icns` to force).
+
+## Changelog
+
+- **[v0.2.2](https://github.com/estlin/divoom-stats/releases/tag/v0.2.2)** — Smaller frames (zstd level 19), skip unchanged frames during idle, crisper headers and larger temp/size text.
+- **[v0.2.1](https://github.com/estlin/divoom-stats/releases/tag/v0.2.1)** — Docs: README now documents the "last frame stays on quit" behavior and how the device joystick brings back the Minitoo's menu.
+- **[v0.2](https://github.com/estlin/divoom-stats/releases/tag/v0.2)** — Fix: display no longer freezes on subsequent launches (RFCOMM open on the main thread, preserve the existing ACL).
+- **[v0.1](https://github.com/estlin/divoom-stats/releases/tag/v0.1)** — Initial release.
 
 ## Acknowledgements
 
